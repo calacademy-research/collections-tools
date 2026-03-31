@@ -1,0 +1,11 @@
+services:
+  fill-higher-taxa:
+    build: .
+    ports:
+      - "127.0.0.1:5050:5000"
+    environment:
+      - DATABASE_HOST=10.1.10.196
+      - DATABASE_PORT=3306
+      - DATABASE_NAME=casiz
+      - DATABASE_USER=sluggo
+      - DATABASE_PASSWORD=D@rwin1809

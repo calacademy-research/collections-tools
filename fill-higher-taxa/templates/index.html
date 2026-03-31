@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fill Higher Taxa</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f5f5; color: #333; padding: 40px 20px; }
+    .container { background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 32px; max-width: 1200px; margin: 0 auto; }
+    h1 { font-size: 1.4rem; margin-bottom: 8px; }
+    p.desc { color: #666; font-size: 0.9rem; margin-bottom: 24px; line-height: 1.5; }
+    .drop-zone { border: 2px dashed #ccc; border-radius: 8px; padding: 40px 20px; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; margin-bottom: 16px; }
+    .drop-zone:hover, .drop-zone.dragover { border-color: #4a90d9; background: #f0f6ff; }
+    .drop-zone p { color: #888; font-size: 0.95rem; }
+    .drop-zone .filename { color: #333; font-weight: 600; margin-top: 8px; }
+    input[type="file"] { display: none; }
+    button { background: #4a90d9; color: #fff; border: none; border-radius: 6px; padding: 12px 24px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    button:hover { background: #3a7bc8; }
+    button:disabled { background: #aaa; cursor: not-allowed; }
+    .btn-upload { width: 100%; }
+    .error { background: #fef0f0; border: 1px solid #f5c6cb; color: #a94442; border-radius: 6px; padding: 12px; margin-bottom: 16px; font-size: 0.9rem; }
+
+    #progress { display: none; margin-top: 24px; }
+    .progress-bar-outer { background: #eee; border-radius: 4px; height: 24px; overflow: hidden; margin-bottom: 12px; }
+    .progress-bar-inner { background: #4a90d9; height: 100%; width: 0%; transition: width 0.15s; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 0.8rem; font-weight: 600; min-width: 40px; }
+    #progress-status { font-size: 0.9rem; color: #555; margin-bottom: 8px; }
+
+    #log { max-height: 200px; overflow-y: auto; font-family: "SF Mono", Monaco, Consolas, monospace; font-size: 0.78rem; background: #1e1e1e; color: #d4d4d4; border-radius: 6px; padding: 12px; margin-top: 12px; display: none; }
+    #log div { padding: 1px 0; white-space: nowrap; }
+    #log .found { color: #6a9955; }
+    #log .not_found { color: #f44747; }
+    #log .multiple { color: #dcdcaa; }
+    #log .skipped { color: #808080; }
+    #log .info { color: #569cd6; }
+
+    #results { display: none; margin-top: 24px; }
+    .results-header { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
+    .results-header .summary { font-size: 0.9rem; }
+    .results-header .summary span { font-weight: 600; }
+    .btn-download { text-decoration: none; }
+    .btn-new { background: #6c757d; }
+    .btn-new:hover { background: #5a6268; }
+
+    .table-wrap { overflow-x: auto; margin-top: 12px; border: 1px solid #ddd; border-radius: 6px; }
+    #preview-table { border-collapse: collapse; width: 100%; font-size: 0.82rem; }
+    #preview-table th { background: #f0f0f0; position: sticky; top: 0; z-index: 1; padding: 8px 10px; border: 1px solid #ddd; text-align: left; white-space: nowrap; font-weight: 600; }
+    #preview-table td { padding: 6px 10px; border: 1px solid #eee; white-space: nowrap; }
+    #preview-table tr:hover td { background: #f8f9fa; }
+
+    .legend-inline { display: flex; gap: 16px; font-size: 0.78rem; color: #666; margin-top: 10px; flex-wrap: wrap; }
+    .legend-inline div { display: flex; align-items: center; gap: 4px; }
+    .legend-inline .sw { display: inline-block; width: 14px; height: 14px; border-radius: 2px; border: 1px solid #ccc; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Fill Higher Taxa</h1>
+    <p class="desc">Upload an <strong>.xls</strong> file with taxonomy columns. The app will look up each taxon in the Specify database and fill in the higher classification.</p>
+
+    <div id="error-box" class="error" style="display:none"></div>
+
+    <div id="upload-section">
+      <form id="uploadForm">
+        <div class="drop-zone" id="dropZone">
+          <p>Drag &amp; drop an .xls file here, or click to browse</p>
+          <p class="filename" id="fileName"></p>
+          <input type="file" name="file" id="fileInput" accept=".xls">
+        </div>
+        <button type="submit" id="submitBtn" class="btn-upload" disabled>Upload &amp; Process</button>
+      </form>
+    </div>
+
+    <div id="progress">
+      <div id="progress-status">Uploading...</div>
+      <div class="progress-bar-outer"><div class="progress-bar-inner" id="progressBar">0%</div></div>
+      <div id="log"></div>
+    </div>
+
+    <div id="results">
+      <div class="results-header">
+        <a id="downloadLink" class="btn-download"><button>Download .xls</button></a>
+        <button class="btn-new" onclick="location.reload()">Process Another</button>
+        <div class="summary" id="resultsSummary"></div>
+      </div>
+      <div class="legend-inline">
+        <div><span class="sw" style="background:#cce5ff"></span> Filled from Specify</div>
+        <div><span class="sw" style="background:#44cc44"></span> Replaced (differed)</div>
+        <div><span class="sw" style="background:#ff4444"></span> Not found (new)</div>
+        <div><span class="sw" style="background:#cc44cc"></span> Warning / multiple</div>
+      </div>
+      <div class="table-wrap" style="max-height:600px; overflow-y:auto;">
+        <table id="preview-table"></table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const fileName = document.getElementById('fileName');
+    const submitBtn = document.getElementById('submitBtn');
+    const uploadSection = document.getElementById('upload-section');
+    const progressDiv = document.getElementById('progress');
+    const progressStatus = document.getElementById('progress-status');
+    const progressBar = document.getElementById('progressBar');
+    const logDiv = document.getElementById('log');
+    const resultsDiv = document.getElementById('results');
+    const resultsSummary = document.getElementById('resultsSummary');
+    const downloadLink = document.getElementById('downloadLink');
+    const errorBox = document.getElementById('error-box');
+    const previewTable = document.getElementById('preview-table');
+
+    let counts = { found: 0, not_found: 0, multiple: 0, skipped: 0 };
+
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      if (e.dataTransfer.files.length) {
+        const dt = new DataTransfer();
+        dt.items.add(e.dataTransfer.files[0]);
+        fileInput.files = dt.files;
+        updateFileName();
+      }
+    });
+
+    fileInput.addEventListener('change', updateFileName);
+
+    function updateFileName() {
+      if (fileInput.files.length) {
+        const name = fileInput.files[0].name;
+        if (!name.endsWith('.xls') || name.endsWith('.xlsx')) {
+          fileName.textContent = 'Please select an .xls file (not .xlsx)';
+          submitBtn.disabled = true;
+        } else {
+          fileName.textContent = name;
+          submitBtn.disabled = false;
+        }
+      }
+    }
+
+    function logLine(text, cls) {
+      logDiv.style.display = 'block';
+      const div = document.createElement('div');
+      div.textContent = text;
+      if (cls) div.className = cls;
+      logDiv.appendChild(div);
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    function showError(msg) {
+      errorBox.textContent = msg;
+      errorBox.style.display = 'block';
+      uploadSection.style.display = 'block';
+      progressDiv.style.display = 'none';
+    }
+
+    async function loadPreview(jobId) {
+      const resp = await fetch('/preview/' + jobId);
+      const data = await resp.json();
+
+      let html = '<thead><tr><th>#</th>';
+      data.headers.forEach(h => { html += '<th>' + esc(h) + '</th>'; });
+      html += '</tr></thead><tbody>';
+
+      data.rows.forEach((row, i) => {
+        html += '<tr><td style="color:#999;font-size:0.75rem">' + (i + 1) + '</td>';
+        row.forEach(cell => {
+          const bg = cell.c ? ' style="background:' + cell.c + (cell.c === '#ff4444' || cell.c === '#cc44cc' ? ';color:#fff' : '') + '"' : '';
+          html += '<td' + bg + '>' + esc(cell.v) + '</td>';
+        });
+        html += '</tr>';
+      });
+      html += '</tbody>';
+      previewTable.innerHTML = html;
+    }
+
+    function esc(s) {
+      const d = document.createElement('div');
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
+    document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorBox.style.display = 'none';
+
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+
+      uploadSection.style.display = 'none';
+      progressDiv.style.display = 'block';
+      progressStatus.textContent = 'Uploading...';
+      logDiv.innerHTML = '';
+      counts = { found: 0, not_found: 0, multiple: 0, skipped: 0 };
+
+      let resp;
+      try {
+        resp = await fetch('/upload', { method: 'POST', body: formData });
+      } catch (err) {
+        showError('Upload failed: ' + err.message);
+        return;
+      }
+
+      const result = await resp.json();
+      if (result.error) {
+        showError(result.error);
+        return;
+      }
+
+      const jobId = result.job_id;
+      progressStatus.textContent = 'Processing...';
+      logLine('Connected, starting processing...', 'info');
+
+      const evtSource = new EventSource('/process/' + jobId);
+
+      evtSource.addEventListener('status', (e) => {
+        const d = JSON.parse(e.data);
+        progressStatus.textContent = d.message;
+        logLine(d.message, 'info');
+      });
+
+      evtSource.addEventListener('row', (e) => {
+        const d = JSON.parse(e.data);
+        const pct = Math.round((d.current / d.total) * 100);
+        progressBar.style.width = pct + '%';
+        progressBar.textContent = pct + '%';
+        progressStatus.textContent = 'Row ' + d.current + ' / ' + d.total;
+
+        counts[d.status]++;
+        const labels = { found: 'found', not_found: 'NEW', multiple: 'multiple', skipped: 'skip' };
+        logLine(d.current + '/' + d.total + '  [' + (labels[d.status] || d.status) + ']  ' + d.name, d.status);
+      });
+
+      evtSource.addEventListener('done', async (e) => {
+        evtSource.close();
+        const d = JSON.parse(e.data);
+        progressBar.style.width = '100%';
+        progressBar.textContent = '100%';
+        progressStatus.textContent = 'Done! Loading preview...';
+        logLine('Processing complete.', 'info');
+
+        resultsSummary.innerHTML =
+          '<span>' + counts.found + '</span> found, ' +
+          '<span style="color:#f44747">' + counts.not_found + '</span> new, ' +
+          '<span style="color:#dcdcaa">' + counts.multiple + '</span> multiple, ' +
+          '<span style="color:#808080">' + counts.skipped + '</span> skipped';
+        downloadLink.href = '/download/' + d.job_id;
+
+        await loadPreview(d.job_id);
+        progressDiv.style.display = 'none';
+        resultsDiv.style.display = 'block';
+      });
+
+      evtSource.addEventListener('error', (e) => {
+        if (e.data) {
+          const d = JSON.parse(e.data);
+          logLine('ERROR: ' + d.message, 'not_found');
+          progressStatus.textContent = 'Error: ' + d.message;
+        }
+        evtSource.close();
+      });
+    });
+  </script>
+</body>
+</html>
