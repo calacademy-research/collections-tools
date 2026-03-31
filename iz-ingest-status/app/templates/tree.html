@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Tree Browser — IZ Ingest Status{% endblock %}
+
+{% block content %}
+<h1 style="font-size:1.3rem; margin-bottom:1rem;">Tree Browser</h1>
+
+{% if not scan %}
+<div class="card">
+    <p>No scan data available. <a href="/">Run a scan</a> first.</p>
+</div>
+{% else %}
+<div class="card">
+    <p class="text-muted" style="font-size:0.85rem; margin-bottom:1rem;">
+        Scan #{{ scan.scan_id }} — {{ "{:,}".format(scan.total_files) }} files
+    </p>
+
+    <div id="tree-root">
+        {% for child in children %}
+        {% include "tree_node.html" %}
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}

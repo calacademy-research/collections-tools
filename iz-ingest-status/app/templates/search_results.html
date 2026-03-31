@@ -1,0 +1,35 @@
+{% if files is defined and files %}
+<div class="card">
+    <h2>{{ "{:,}".format(files | length) }} results{% if files | length >= 100 %} (showing first 100){% endif %}</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>File Path</th>
+                <th>State</th>
+                <th>CASIZ</th>
+                <th>Source</th>
+                <th>Key CSV</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for f in files %}
+            <tr>
+                <td class="mono truncate" title="{{ f.file_path }}">{{ f.filename }}</td>
+                <td><span class="badge badge-{{ f.state }}">{{ f.state }}</span></td>
+                <td class="mono">{{ f.casiz_numbers if f.casiz_numbers != '[]' else '—' }}</td>
+                <td>{{ f.casiz_source or '—' }}</td>
+                <td class="mono truncate" title="{{ f.key_csv_path or '' }}">
+                    {% if f.key_csv_path %}
+                    <a href="/key/edit?path={{ f.key_csv_path | urlencode }}">{{ f.key_csv_path | replace(scan_root, '') }}</a>
+                    {% else %}—{% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% elif query is defined and query %}
+<div class="card">
+    <p class="text-muted">No results for "{{ query }}"</p>
+</div>
+{% endif %}

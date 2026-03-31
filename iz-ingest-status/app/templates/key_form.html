@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Edit Key CSV — IZ Ingest Status{% endblock %}
+
+{% block content %}
+<div class="flex-between mb-1">
+    <h1 style="font-size:1.3rem;">Edit Key CSV</h1>
+    <a href="/key" class="btn btn-secondary">Back to list</a>
+</div>
+
+<div class="card">
+    <p class="mono text-muted" style="margin-bottom:1rem;">{{ path }}</p>
+
+    {% if saved %}
+    <div style="background:#d4edda; padding:0.75rem; border-radius:4px; margin-bottom:1rem;">
+        Saved successfully.
+    </div>
+    {% endif %}
+
+    {% if error %}
+    <div style="background:#f8d7da; padding:0.75rem; border-radius:4px; margin-bottom:1rem;">
+        {{ error }}
+    </div>
+    {% endif %}
+
+    <form method="post" action="/key/save">
+        <input type="hidden" name="path" value="{{ path }}">
+
+        <div class="form-group">
+            <label for="CopyrightHolder">Copyright Holder</label>
+            <input type="text" id="CopyrightHolder" name="CopyrightHolder"
+                   value="{{ data.get('CopyrightHolder', '') or '' }}">
+        </div>
+
+        <div class="form-group">
+            <label for="CopyrightDate">Copyright Date</label>
+            <input type="text" id="CopyrightDate" name="CopyrightDate"
+                   value="{{ data.get('CopyrightDate', '') or '' }}">
+        </div>
+
+        <div class="form-group">
+            <label for="Credit">Credit</label>
+            <input type="text" id="Credit" name="Credit"
+                   value="{{ data.get('Credit', '') or '' }}">
+        </div>
+
+        <div class="form-group">
+            <label for="License">License</label>
+            <input type="text" id="License" name="License"
+                   value="{{ data.get('License', '') or '' }}">
+        </div>
+
+        <div class="form-group">
+            <label for="Remarks">Remarks</label>
+            <textarea id="Remarks" name="Remarks" rows="2">{{ data.get('Remarks', '') or '' }}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="IsPublic">Is Public</label>
+            <select id="IsPublic" name="IsPublic">
+                <option value="" {% if not data.get('IsPublic') %}selected{% endif %}>—</option>
+                <option value="TRUE" {% if data.get('IsPublic', '')|upper == 'TRUE' %}selected{% endif %}>TRUE</option>
+                <option value="FALSE" {% if data.get('IsPublic', '')|upper == 'FALSE' %}selected{% endif %}>FALSE</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="creator">Metadata Text (Creator)</label>
+            <input type="text" id="creator" name="creator"
+                   value="{{ data.get('creator', '') or '' }}">
+        </div>
+
+        <div class="form-group">
+            <label for="createdByAgent">Created By Agent</label>
+            <input type="text" id="createdByAgent" name="createdByAgent"
+                   value="{{ data.get('createdByAgent', '') or '' }}">
+        </div>
+
+        <div class="form-group">
+            <label for="subType">Sub Type</label>
+            <input type="text" id="subType" name="subType"
+                   value="{{ data.get('subType', '') or '' }}">
+        </div>
+
+        <div class="form-group">
+            <label for="remove">Remove</label>
+            <select id="remove" name="remove">
+                <option value="" {% if not data.get('remove') %}selected{% endif %}>—</option>
+                <option value="TRUE" {% if data.get('remove', '')|upper == 'TRUE' %}selected{% endif %}>TRUE</option>
+                <option value="FALSE" {% if data.get('remove', '')|upper == 'FALSE' %}selected{% endif %}>FALSE</option>
+            </select>
+        </div>
+
+        <div class="flex gap-1 mt-1">
+            <button type="submit" class="btn btn-primary">Save</button>
+            <a href="/key" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

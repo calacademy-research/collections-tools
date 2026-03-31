@@ -1,0 +1,17 @@
+{% if progress %}
+<div style="display:flex; align-items:center; gap:0.5rem;">
+    <span class="spinner"></span>
+    <span style="font-size:0.85rem;">
+        Scanning... {{ "{:,}".format(progress.total_files) }} files processed
+    </span>
+</div>
+{% elif scan and scan.status == 'completed' %}
+<div style="font-size:0.85rem; color:#28a745;">
+    Scan complete — {{ "{:,}".format(scan.total_files) }} files.
+    <a href="/" style="color:#007bff;">Refresh</a>
+</div>
+{% elif scan and scan.status == 'failed' %}
+<div style="font-size:0.85rem; color:#dc3545;">
+    Scan failed. Check logs.
+</div>
+{% endif %}

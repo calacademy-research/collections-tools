@@ -1,0 +1,23 @@
+<div class="tree-node">
+    <div class="tree-toggle"
+         hx-get="/tree/expand?path={{ child.path | urlencode }}&scan_id={{ scan_id }}"
+         hx-target="#children-{{ child.path | replace('/', '_') | replace(' ', '-') }}"
+         hx-swap="innerHTML"
+         onclick="this.querySelector('.tree-arrow').classList.toggle('open')">
+        <span class="tree-arrow">&#9654;</span>
+        <strong style="font-size:0.85rem;">{{ child.name }}</strong>
+        <span class="tree-counts">
+            ({{ "{:,}".format(child.total) }} files
+            {% if child.ingested %}<span class="badge badge-ingested" title="ingested: {{ "{:,}".format(child.ingested) }}">{{ "{:,}".format(child.ingested) }}</span>{% endif %}
+            {% if child.pending %}<span class="badge badge-pending" title="pending: {{ "{:,}".format(child.pending) }}">{{ "{:,}".format(child.pending) }}</span>{% endif %}
+            {% if child.no_casiz %}<span class="badge badge-no_casiz" title="no CASIZ match: {{ "{:,}".format(child.no_casiz) }}">{{ "{:,}".format(child.no_casiz) }}</span>{% endif %}
+            {% if child.removed %}<span class="badge badge-removed" title="removed: {{ "{:,}".format(child.removed) }}">{{ "{:,}".format(child.removed) }}</span>{% endif %}
+            {% if child.missing_key %}<span class="badge badge-missing_key" title="missing key.csv: {{ "{:,}".format(child.missing_key) }}">{{ "{:,}".format(child.missing_key) }}</span>{% endif %}
+            {% if child.forbidden_ext %}<span class="badge badge-forbidden_ext" title="forbidden extension: {{ "{:,}".format(child.forbidden_ext) }}">{{ "{:,}".format(child.forbidden_ext) }}</span>{% endif %}
+            {% if child.no_specimen %}<span class="badge badge-no_specimen" title="no specimen record: {{ "{:,}".format(child.no_specimen) }}">{{ "{:,}".format(child.no_specimen) }}</span>{% endif %}
+            )
+        </span>
+    </div>
+    <div class="tree-children" id="children-{{ child.path | replace('/', '_') | replace(' ', '-') }}">
+    </div>
+</div>

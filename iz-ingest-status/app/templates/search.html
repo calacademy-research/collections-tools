@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Search — IZ Ingest Status{% endblock %}
+
+{% block content %}
+<h1 style="font-size:1.3rem; margin-bottom:1rem;">Search</h1>
+
+{% if not scan %}
+<div class="card">
+    <p>No scan data available. <a href="/">Run a scan</a> first.</p>
+</div>
+{% else %}
+<div class="card">
+    <form class="flex gap-1" style="align-items:flex-end;">
+        <div class="form-group" style="flex:1;">
+            <label for="q">Search query</label>
+            <input type="search" id="q" name="q" value="{{ query }}"
+                   placeholder="Enter filename or CASIZ number..."
+                   hx-get="/search/results"
+                   hx-trigger="input changed delay:300ms, search"
+                   hx-target="#results"
+                   hx-include="[name='type']">
+        </div>
+        <div class="form-group">
+            <label for="type">Search by</label>
+            <select id="type" name="type"
+                    hx-get="/search/results"
+                    hx-trigger="change"
+                    hx-target="#results"
+                    hx-include="[name='q']">
+                <option value="filename" {% if search_type == 'filename' %}selected{% endif %}>Filename</option>
+                <option value="casiz" {% if search_type == 'casiz' %}selected{% endif %}>CASIZ Number</option>
+            </select>
+        </div>
+    </form>
+</div>
+
+<div id="results">
+    {% include "search_results.html" %}
+</div>
+{% endif %}
+{% endblock %}

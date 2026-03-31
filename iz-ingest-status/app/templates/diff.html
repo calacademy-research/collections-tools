@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block title %}Diff — IZ Ingest Status{% endblock %}
+
+{% block content %}
+<h1 style="font-size:1.3rem; margin-bottom:1rem;">Scan Diff</h1>
+
+{% if scans | length < 2 %}
+<div class="card">
+    <p>Need at least 2 completed scans to compare. <a href="/">Run more scans</a> first.</p>
+</div>
+{% else %}
+
+<div class="card">
+    <form method="get" action="/diff" class="flex gap-1" style="align-items:flex-end;">
+        <div class="form-group">
+            <label for="old">Old scan</label>
+            <select name="old" id="old">
+                {% for s in scans %}
+                <option value="{{ s.scan_id }}" {% if s.scan_id == old_id %}selected{% endif %}>
+                    #{{ s.scan_id }} — {{ s.started_at[:19] }} ({{ "{:,}".format(s.total_files) }} files)
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="new">New scan</label>
+            <select name="new" id="new">
+                {% for s in scans %}
+                <option value="{{ s.scan_id }}" {% if s.scan_id == new_id %}selected{% endif %}>
+                    #{{ s.scan_id }} — {{ s.started_at[:19] }} ({{ "{:,}".format(s.total_files) }} files)
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <button type="submit" class="btn btn-primary">Compare</button>
+        </div>
+    </form>
+</div>
+
+{% if diff %}
+<!-- Count comparison -->
+<div class="card">
+    <h2>State Count Changes</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>State</th>
+                <th class="text-right">Old (#{{ old_id }})</th>
+                <th class="text-right">New (#{{ new_id }})</th>
+                <th class="text-right">Change</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% set all_states = diff.old_counts.keys() | list + diff.new_counts.keys() | list %}
+            {% for state in all_states | unique | sort %}
+            {% set old_count = diff.old_counts.get(state, 0) %}
+            {% set new_count = diff.new_counts.get(state, 0) %}
+            {% set change = new_count - old_count %}
+            <tr>
+                <td><span class="badge badge-{{ state }}">{{ state }}</span></td>
+                <td class="text-right number">{{ "{:,}".format(old_count) }}</td>
+                <td class="text-right number">{{ "{:,}".format(new_count) }}</td>
+                <td class="text-right number" style="color: {% if change > 0 %}#28a745{% elif change < 0 %}#dc3545{% else %}#888{% endif %}">
+                    {{ "+%s" | format("{:,}".format(change)) if change > 0 else "{:,}".format(change) }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Changed files -->
+{% if diff.changed_state %}
+<div class="card">
+    <h2>State Changes ({{ "{:,}".format(diff.changed_count) }})</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>File</th>
+                <th>Old State</th>
+                <th>New State</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for c in diff.changed_state %}
+            <tr class="diff-change">
+                <td class="mono" style="font-size:0.8rem; word-break:break-all;">{{ c.file_path }}</td>
+                <td><span class="badge badge-{{ c.old_state }}">{{ c.old_state }}</span></td>
+                <td><span class="badge badge-{{ c.new_state }}">{{ c.new_state }}</span></td>
+            </tr>
+            {% endfor %}
+            {% if diff.changed_count > diff.changed_state | length %}
+            <tr><td colspan="3" class="text-muted">... and {{ "{:,}".format(diff.changed_count - diff.changed_state | length) }} more</td></tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+<!-- New files -->
+{% if diff.new_files %}
+<div class="card">
+    <h2>New Files ({{ "{:,}".format(diff.new_files_count) }})</h2>
+    <table>
+        <tbody>
+            {% for f in diff.new_files %}
+            <tr class="diff-add"><td class="mono" style="font-size:0.8rem; word-break:break-all;">{{ f }}</td></tr>
+            {% endfor %}
+            {% if diff.new_files_count > diff.new_files | length %}
+            <tr><td class="text-muted">... and {{ "{:,}".format(diff.new_files_count - diff.new_files | length) }} more</td></tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+<!-- Removed files -->
+{% if diff.removed_files %}
+<div class="card">
+    <h2>Removed Files ({{ "{:,}".format(diff.removed_files_count) }})</h2>
+    <table>
+        <tbody>
+            {% for f in diff.removed_files %}
+            <tr class="diff-remove"><td class="mono" style="font-size:0.8rem; word-break:break-all;">{{ f }}</td></tr>
+            {% endfor %}
+            {% if diff.removed_files_count > diff.removed_files | length %}
+            <tr><td class="text-muted">... and {{ "{:,}".format(diff.removed_files_count - diff.removed_files | length) }} more</td></tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+{% endif %}
+
+{% endif %}
+{% endblock %}

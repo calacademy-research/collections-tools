@@ -1,0 +1,29 @@
+services:
+  iz-ingest-status:
+    build: .
+    container_name: iz-ingest-status
+    restart: unless-stopped
+    volumes:
+      # NFS mount — rw needed for key.csv editing
+      - /letter_drives/n_drive:/letter_drives/n_drive
+      # Persistent SQLite storage
+      - iz-status-data:/data
+      # Host /tmp so we can see the iz_import.sh lockfile
+      - /tmp:/host_tmp:ro
+    # Password has a default in config.py; only set env var to override
+    #environment:
+    #  - IZ_SPECIFY_DB_PASSWORD=${IZ_SPECIFY_DB_PASSWORD}
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.iz-status.rule=Host(`iz-status.ibss.calacademy.org`)"
+      - "traefik.http.routers.iz-status.entrypoints=web"
+      - "traefik.http.services.iz-status.loadbalancer.server.port=8000"
+
+volumes:
+  iz-status-data:
+
+networks:
+  proxy:
+    external: true

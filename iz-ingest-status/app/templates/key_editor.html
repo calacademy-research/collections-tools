@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}Key Files — IZ Ingest Status{% endblock %}
+
+{% block content %}
+<h1 style="font-size:1.3rem; margin-bottom:1rem;">Key CSV Files</h1>
+
+{% if not scan %}
+<div class="card">
+    <p>No scan data available. <a href="/">Run a scan</a> first.</p>
+</div>
+{% else %}
+
+<!-- Ingest status area — htmx responses go here -->
+<div id="ingest-status" class="card" style="display:none; margin-bottom:1rem;"></div>
+
+{% if is_import_running() %}
+<div style="background:#fff3cd; border:1px solid #ffc107; border-radius:6px; padding:0.5rem 1rem; margin-bottom:1rem; font-size:0.85rem; display:flex; align-items:center; gap:0.5rem;">
+    <span class="spinner"></span>
+    <strong style="color:#856404;">IZ Import is running</strong>
+    <span style="color:#856404;">— ingest buttons disabled until the current import completes.</span>
+</div>
+{% endif %}
+
+<div class="card">
+    <div class="flex-between mb-1">
+        <p class="text-muted" style="font-size:0.85rem;">
+            {{ key_csvs | length }} key.csv files found in scan #{{ scan.scan_id }}
+        </p>
+        <div style="width:300px;">
+            <input type="search" id="key-search" placeholder="Filter by path..."
+                   oninput="filterKeyTable(this.value)">
+        </div>
+    </div>
+    <table id="key-table">
+        <thead>
+            <tr>
+                <th class="sortable" data-col="0">Path</th>
+                <th class="sortable" data-col="1">Remove</th>
+                <th class="sortable text-right" data-col="2">Files Governed</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for k in key_csvs %}
+            <tr>
+                <td class="mono" style="word-break:break-all; font-size:0.8rem;">
+                    {{ k.file_path | replace(scan_root, '') }}
+                </td>
+                <td>
+                    {% if k.parsed_data.get('remove', '')|lower in ['true', '1', 'yes'] %}
+                    <span class="badge badge-removed" style="text-decoration:none;">REMOVE</span>
+                    {% else %}
+                    <span class="badge badge-pending" style="text-decoration:none;">INGEST</span>
+                    {% endif %}
+                </td>
+                <td class="text-right number">{{ k.file_count }}</td>
+                <td style="white-space:nowrap;">
+                    <a href="/key/edit?path={{ k.file_path | urlencode }}"
+                       class="btn btn-secondary" style="font-size:0.75rem;">Edit</a>
+                    {% if k.parsed_data.get('remove', '')|lower not in ['true', '1', 'yes'] %}
+                        {% if is_import_running() %}
+                        <button class="btn btn-secondary" disabled
+                                style="font-size:0.75rem; opacity:0.5; cursor:not-allowed;"
+                                title="Import is currently running">Ingest</button>
+                        {% else %}
+                        <button class="btn btn-secondary" style="font-size:0.75rem; background:#28a745; border-color:#28a745;"
+                                hx-post="/ingest/trigger"
+                                hx-vals='{"path": "{{ k.file_path }}"}'
+                                hx-target="#ingest-status"
+                                hx-swap="innerHTML"
+                                onclick="document.getElementById('ingest-status').style.display='block'"
+                                hx-confirm="Start ingest for this directory?">Ingest</button>
+                        {% endif %}
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+<script>
+// Client-side search — filter rows by path text
+function filterKeyTable(query) {
+    const q = query.toLowerCase();
+    const rows = document.querySelectorAll('#key-table tbody tr');
+    rows.forEach(row => {
+        const path = row.cells[0].textContent.toLowerCase();
+        row.style.display = path.includes(q) ? '' : 'none';
+    });
+}
+
+// Simple table sorting — click any .sortable header to toggle sort
+document.querySelectorAll('#key-table th.sortable').forEach(th => {
+    th.style.cursor = 'pointer';
+    th.addEventListener('click', () => {
+        const table = document.getElementById('key-table');
+        const tbody = table.querySelector('tbody');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        const col = parseInt(th.dataset.col);
+        const asc = th.dataset.sort !== 'asc';
+
+        // Clear sort indicators on all headers
+        table.querySelectorAll('th.sortable').forEach(h => {
+            h.dataset.sort = '';
+            h.textContent = h.textContent.replace(/ [▲▼]$/, '');
+        });
+        th.dataset.sort = asc ? 'asc' : 'desc';
+        th.textContent += asc ? ' ▲' : ' ▼';
+
+        rows.sort((a, b) => {
+            let va = a.cells[col].textContent.trim();
+            let vb = b.cells[col].textContent.trim();
+            // Try numeric sort for the "Files Governed" column
+            const na = parseFloat(va.replace(/,/g, ''));
+            const nb = parseFloat(vb.replace(/,/g, ''));
+            if (!isNaN(na) && !isNaN(nb)) {
+                return asc ? na - nb : nb - na;
+            }
+            return asc ? va.localeCompare(vb) : vb.localeCompare(va);
+        });
+        rows.forEach(r => tbody.appendChild(r));
+    });
+});
+</script>
+{% endblock %}
