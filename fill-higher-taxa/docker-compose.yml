@@ -1,11 +1,22 @@
 services:
   fill-higher-taxa:
     build: .
-    ports:
-      - "0.0.0.0:8001:5000"
+    # HTTPS via the ibss-central Traefik: https://fill-higher-taxa.ibss.calacademy.org
+    # (old http://ibss-central.calacademy.org:8001 is a Traefik redirect to it).
+    networks: [proxy]
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=proxy
+      - traefik.http.routers.fill-higher-taxa.entrypoints=web
+      - traefik.http.routers.fill-higher-taxa.rule=Host(`fill-higher-taxa.ibss.calacademy.org`)
+      - traefik.http.services.fill-higher-taxa.loadbalancer.server.port=5000
     environment:
       - DATABASE_HOST=10.1.10.196
       - DATABASE_PORT=3306
       - DATABASE_NAME=casiz
       - DATABASE_USER=sluggo
       - DATABASE_PASSWORD=D@rwin1809
+
+networks:
+  proxy:
+    external: true
