@@ -44,7 +44,7 @@ docker compose up -d
 - Host: ntobiko.calacademy.org:3306
 - Database: casiz
 - User: jfong
-- Password: J0nd@vid
+- Password: not in the repo. `IZ_SPECIFY_DB_PASSWORD` comes from `/admin/secrets/iz_ingest_status.env` on ibss-central (mode 600), loaded by `EnvironmentFile=` in `iz-ingest-status.service`.
 - Key table: `attachment` (98.7K records, `origFilename` is the dedup key)
 
 **This tool reads Specify. It never writes to it.**

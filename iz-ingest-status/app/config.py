@@ -29,7 +29,10 @@ class Settings(BaseSettings):
     specify_db_port: int = 3306
     specify_db_name: str = "casiz"
     specify_db_user: str = "jfong"
-    iz_specify_db_password: str = "J0nd@vid"
+    # Required, no default: the IZ_SPECIFY_DB_PASSWORD environment variable, set by the systemd unit
+    # from EnvironmentFile=/admin/secrets/iz_ingest_status.env (mode 600, untracked, on ibss-central).
+    # Startup fails if it is missing. Never put the value in this repo (it is public).
+    iz_specify_db_password: str
 
     # -- SQLite cache --
     sqlite_path: str = "/data/iz_status.db"
